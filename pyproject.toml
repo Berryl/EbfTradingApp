@@ -1,0 +1,111 @@
+[build-system]
+requires = [
+    "uv_build>=0.4,<1",
+]
+build-backend = "uv_build"
+
+[project]
+name = "ebf-trading-app"
+version = "0.1.0"
+description = "Configures and launches EbfTrading"
+requires-python = ">=3.13"
+authors = [
+    { name = "EBF" },
+]
+dependencies = [
+    "ebf-core",
+    "ebf-data",
+    "ebf-domain",
+    "ebf-trading",
+    "ebf-ui",
+]
+
+[project.license]
+text = "MIT"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "mypy>=1.10",
+    "ruff>=0.5",
+    "pytest-qt>=4.5.0",
+]
+
+[tool.uv.sources.ebf-core]
+path = "../EbfUtil"
+editable = true
+
+[tool.uv.sources.ebf-domain]
+path = "../EbfDomain"
+editable = true
+
+[tool.uv.sources.ebf-data]
+path = "../EbfData"
+editable = true
+
+[tool.uv.sources.ebf-trading]
+path = "../EbfTrading"
+editable = true
+
+[tool.uv.sources.ebf-ui]
+path = "../EbfUI"
+editable = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+pythonpath = [
+    ".",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = [
+    "src",
+    "tests",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "B",
+    "C4",
+    "UP",
+    "SIM",
+    "ARG",
+    "ERA",
+    "PL",
+    "PIE",
+]
+ignore = [
+    "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = [
+    "PLR2004",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "ebf_*",
+]
+known-local-folder = []
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+disallow_untyped_defs = true
+check_untyped_defs = true
