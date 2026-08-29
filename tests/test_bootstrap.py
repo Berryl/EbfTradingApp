@@ -42,7 +42,7 @@ class TestResolveDatabasePath:
             path = local_app_data / "EbfTrading" / "test" / "app.sqlite"
             assert resolve_database_path(AppEnvironment.TEST) == path
 
-    class TestWhenDbPathIsPassed:
+    class TestWhenDbPathIsPassedAsArg:
         def test_db_path_overrides_environment(
                 self, tmp_path: Path, clean_db_env: pytest.MonkeyPatch) -> None:
             clean_db_env.setenv("EBF_DB_PATH", str(tmp_path / "from-env.sqlite"))
@@ -50,28 +50,25 @@ class TestResolveDatabasePath:
 
             assert resolve_database_path(AppEnvironment.PROD, db_path=explicit_path) == explicit_path
 
+    class TestWhenDbPathIsSetInEnvironment:
 
-def test_ebf_db_path_wins_over_data_dir(
-        tmp_path: Path,
-        clean_db_env: pytest.MonkeyPatch,
-) -> None:
-    clean_db_env.setenv("EBF_DB_PATH", str(tmp_path / "override.sqlite"))
-    clean_db_env.setenv("EBF_DATA_DIR", str(tmp_path / "data-dir"))
-    clean_db_env.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+        def test_db_path_overrides_environment(
+                self, tmp_path: Path, clean_db_env: pytest.MonkeyPatch) -> None:
+            clean_db_env.setenv("EBF_DB_PATH", str(tmp_path / "override.sqlite"))
+            clean_db_env.setenv("EBF_DATA_DIR", str(tmp_path / "data-dir"))
+            clean_db_env.setenv("LOCALAPPDATA", str(tmp_path / "local"))
 
-    assert resolve_database_path(AppEnvironment.DEV) == tmp_path / "override.sqlite"
+            assert resolve_database_path(AppEnvironment.DEV) == tmp_path / "override.sqlite"
 
 
-def test_ebf_data_dir_is_used_as_app_root(
-        tmp_path: Path,
-        clean_db_env: pytest.MonkeyPatch,
-) -> None:
-    data_dir = tmp_path / "custom-root"
-    clean_db_env.setenv("EBF_DATA_DIR", str(data_dir))
-    clean_db_env.setenv("LOCALAPPDATA", str(tmp_path / "ignored"))
+        def test_ebf_data_dir_is_used_as_app_root(
+                self, tmp_path: Path,clean_db_env: pytest.MonkeyPatch) -> None:
+            data_dir = tmp_path / "custom-root"
+            clean_db_env.setenv("EBF_DATA_DIR", str(data_dir))
+            clean_db_env.setenv("LOCALAPPDATA", str(tmp_path / "ignored"))
 
-    assert resolve_database_path(AppEnvironment.PROD) == data_dir / "app.sqlite"
-    assert resolve_database_path(AppEnvironment.DEV) == data_dir / "dev" / "app.sqlite"
+            assert resolve_database_path(AppEnvironment.PROD) == data_dir / "app.sqlite"
+            assert resolve_database_path(AppEnvironment.DEV) == data_dir / "dev" / "app.sqlite"
 
 
 def test_explicit_app_root_wins_over_env_roots(
