@@ -17,6 +17,7 @@ dependencies = [
     "ebf-data",
     "ebf-domain",
     "ebf-trading",
+    "ebf-trading-ui",
     "ebf-ui",
 ]
 
@@ -46,6 +47,10 @@ editable = true
 
 [tool.uv.sources.ebf-trading]
 path = "../EbfTrading"
+editable = true
+
+[tool.uv.sources.ebf-trading-ui]
+path = "../EbfTradingUI"
 editable = true
 
 [tool.uv.sources.ebf-ui]
