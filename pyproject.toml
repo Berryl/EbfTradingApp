@@ -61,6 +61,8 @@ editable = true
 testpaths = [
     "tests",
 ]
+addopts = ["--basetemp=.pytest_tmp"]
+
 python_files = [
     "test_*.py",
     "*_test.py",
