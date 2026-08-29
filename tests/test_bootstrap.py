@@ -13,50 +13,43 @@ from ebf_trading_app.bootstrap import (
 )
 
 
-def test_resolves_production_database_path(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+@pytest.fixture
+def clean_db_env(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
+    """Clear path overrides so resolution uses only what the test sets."""
     monkeypatch.delenv("EBF_DB_PATH", raising=False)
     monkeypatch.delenv("EBF_DATA_DIR", raising=False)
+    return monkeypatch
 
+
+@pytest.fixture
+def local_app_data(tmp_path: Path, clean_db_env: pytest.MonkeyPatch) -> Path:
+    clean_db_env.setenv("LOCALAPPDATA", str(tmp_path))
+    return tmp_path
+
+
+def test_resolves_production_database_path(local_app_data: Path) -> None:
     assert resolve_database_path(AppEnvironment.PROD) == (
-        tmp_path / "EbfTrading" / "app.sqlite"
+        local_app_data / "EbfTrading" / "app.sqlite"
     )
 
 
-def test_resolves_development_database_path(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
-    monkeypatch.delenv("EBF_DB_PATH", raising=False)
-    monkeypatch.delenv("EBF_DATA_DIR", raising=False)
-
+def test_resolves_development_database_path(local_app_data: Path) -> None:
     assert resolve_database_path(AppEnvironment.DEV) == (
-        tmp_path / "EbfTrading" / "dev" / "app.sqlite"
+        local_app_data / "EbfTrading" / "dev" / "app.sqlite"
     )
 
 
-def test_resolves_test_database_path(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
-    monkeypatch.delenv("EBF_DB_PATH", raising=False)
-    monkeypatch.delenv("EBF_DATA_DIR", raising=False)
-
+def test_resolves_test_database_path(local_app_data: Path) -> None:
     assert resolve_database_path(AppEnvironment.TEST) == (
-        tmp_path / "EbfTrading" / "test" / "app.sqlite"
+        local_app_data / "EbfTrading" / "test" / "app.sqlite"
     )
 
 
 def test_explicit_db_path_wins_over_environment(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    clean_db_env: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("EBF_DB_PATH", str(tmp_path / "from-env.sqlite"))
+    clean_db_env.setenv("EBF_DB_PATH", str(tmp_path / "from-env.sqlite"))
     explicit = tmp_path / "explicit.sqlite"
 
     assert resolve_database_path(AppEnvironment.PROD, db_path=explicit) == explicit
@@ -64,23 +57,22 @@ def test_explicit_db_path_wins_over_environment(
 
 def test_ebf_db_path_wins_over_data_dir(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    clean_db_env: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("EBF_DB_PATH", str(tmp_path / "override.sqlite"))
-    monkeypatch.setenv("EBF_DATA_DIR", str(tmp_path / "data-dir"))
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    clean_db_env.setenv("EBF_DB_PATH", str(tmp_path / "override.sqlite"))
+    clean_db_env.setenv("EBF_DATA_DIR", str(tmp_path / "data-dir"))
+    clean_db_env.setenv("LOCALAPPDATA", str(tmp_path / "local"))
 
     assert resolve_database_path(AppEnvironment.DEV) == tmp_path / "override.sqlite"
 
 
 def test_ebf_data_dir_is_used_as_app_root(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    clean_db_env: pytest.MonkeyPatch,
 ) -> None:
     data_dir = tmp_path / "custom-root"
-    monkeypatch.delenv("EBF_DB_PATH", raising=False)
-    monkeypatch.setenv("EBF_DATA_DIR", str(data_dir))
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "ignored"))
+    clean_db_env.setenv("EBF_DATA_DIR", str(data_dir))
+    clean_db_env.setenv("LOCALAPPDATA", str(tmp_path / "ignored"))
 
     assert resolve_database_path(AppEnvironment.PROD) == data_dir / "app.sqlite"
     assert resolve_database_path(AppEnvironment.DEV) == data_dir / "dev" / "app.sqlite"
@@ -88,10 +80,9 @@ def test_ebf_data_dir_is_used_as_app_root(
 
 def test_explicit_app_root_wins_over_env_roots(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    clean_db_env: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("EBF_DB_PATH", raising=False)
-    monkeypatch.setenv("EBF_DATA_DIR", str(tmp_path / "env-root"))
+    clean_db_env.setenv("EBF_DATA_DIR", str(tmp_path / "env-root"))
     app_root = tmp_path / "injected-root"
 
     assert resolve_database_path(
@@ -102,12 +93,10 @@ def test_explicit_app_root_wins_over_env_roots(
 
 def test_falls_back_to_xdg_data_home_when_localappdata_missing(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    clean_db_env: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("EBF_DB_PATH", raising=False)
-    monkeypatch.delenv("EBF_DATA_DIR", raising=False)
-    monkeypatch.delenv("LOCALAPPDATA", raising=False)
-    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
+    clean_db_env.delenv("LOCALAPPDATA", raising=False)
+    clean_db_env.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
 
     assert default_app_root() == tmp_path / "xdg" / "EbfTrading"
     assert resolve_database_path(AppEnvironment.PROD) == (
@@ -117,13 +106,11 @@ def test_falls_back_to_xdg_data_home_when_localappdata_missing(
 
 def test_falls_back_to_home_local_share(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    clean_db_env: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("EBF_DB_PATH", raising=False)
-    monkeypatch.delenv("EBF_DATA_DIR", raising=False)
-    monkeypatch.delenv("LOCALAPPDATA", raising=False)
-    monkeypatch.delenv("XDG_DATA_HOME", raising=False)
-    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "home"))
+    clean_db_env.delenv("LOCALAPPDATA", raising=False)
+    clean_db_env.delenv("XDG_DATA_HOME", raising=False)
+    clean_db_env.setattr(Path, "home", classmethod(lambda cls: tmp_path / "home"))
 
     assert default_app_root() == tmp_path / "home" / ".local" / "share" / "EbfTrading"
 
@@ -151,9 +138,7 @@ def test_bootstrap_creates_database_and_constructs_components(
     assert account_table == ("accounts",)
 
 
-def test_bootstrap_test_env_writes_under_test_subdirectory(
-    tmp_path: Path,
-) -> None:
+def test_bootstrap_test_env_writes_under_test_subdirectory(tmp_path: Path) -> None:
     components = bootstrap(AppEnvironment.TEST, app_root=tmp_path)
 
     assert components.db_path == tmp_path / "test" / "app.sqlite"
