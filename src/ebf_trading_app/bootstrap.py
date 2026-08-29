@@ -56,12 +56,7 @@ def default_app_root() -> Path:
     return _platform_app_data_root() / _APP_DIR_NAME
 
 
-def resolve_database_path(
-        environment: AppEnvironment,
-        *,
-        app_root: Path | None = None,
-        db_path: Path | None = None,
-) -> Path:
+def resolve_database_path(env: AppEnvironment, *, app_root: Path | None = None, db_path: Path | None = None) -> Path:
     """Return the database path for an application environment.
 
     Resolution order:
@@ -70,8 +65,8 @@ def resolve_database_path(
     3. ``app_root`` / environment subdirectory / ``app.sqlite``
     4. ``EBF_DATA_DIR`` as ``app_root`` if set, otherwise the platform default
 
-    TEST is still a real file (``<root>/test/app.sqlite``). In-memory
-    databases are a test-runner concern: pass ``db_path`` explicitly.
+    TEST is still a real file (``<root>/test/app.sqlite``).
+    In-memory databases are a test-runner concern: pass ``db_path`` explicitly.
     """
     if db_path is not None:
         return db_path
@@ -83,9 +78,9 @@ def resolve_database_path(
     if root is None:
         root = Path(os.environ[_DATA_DIR_ENV]) if _DATA_DIR_ENV in os.environ else default_app_root()
 
-    if environment is AppEnvironment.DEV:
+    if env is AppEnvironment.DEV:
         root = root / "dev"
-    elif environment is AppEnvironment.TEST:
+    elif env is AppEnvironment.TEST:
         root = root / "test"
 
     return root / _DB_FILENAME
