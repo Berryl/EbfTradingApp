@@ -97,7 +97,7 @@ class TestResolveDatabasePath:
 
 class TestBootstrap:
     @pytest.mark.parametrize("env", list(AppEnvironment))
-    def test_creates_database_and_constructs_components(self, env, tmp_path: Path) -> None:
+    def test_creates_database_and_constructs_components(self, env: AppEnvironment, tmp_path: Path) -> None:
         db_path = tmp_path / "isolated" / "app.sqlite"
 
         components = bootstrap(env, db_path=db_path)
@@ -136,9 +136,18 @@ class TestBootstrap:
 
         def test_provisioning_is_idempotent(self, tmp_path: Path) -> None:
             db_path = tmp_path / "dev.sqlite"
+            changed_owner = "Existing LLC"
+            changed_balance = Money.mint("125")
 
             bootstrap(AppEnvironment.DEV, db_path=db_path)
-            bootstrap(AppEnvironment.DEV, db_path=db_path)
+            with sqlite3.connect(db_path) as connection:
+                connection.execute(
+                    "UPDATE accounts SET owner = ?, balance_minor_units = ? WHERE id = ?",
+                    (changed_owner, changed_balance.amount_cents, str(self._DEV_ACCOUNT_ID)),
+                )
+
+            components = bootstrap(AppEnvironment.DEV, db_path=db_path)
+            acct = components.account_repo.get(self._DEV_ACCOUNT_ID)
 
             with sqlite3.connect(db_path) as connection:
                 account_count = connection.execute(
@@ -147,9 +156,12 @@ class TestBootstrap:
                 ).fetchone()
 
             assert account_count == (1,)
+            assert acct is not None
+            assert acct.owner == changed_owner
+            assert acct.balance == changed_balance
 
         @pytest.mark.parametrize("env", [AppEnvironment.PROD, AppEnvironment.TEST])
-        def test_only_dev_creates_the_default_account(self, tmp_path: Path, env) -> None:
-            components = bootstrap(env, db_path=tmp_path / "prod.sqlite")
+        def test_only_dev_creates_the_default_account(self, tmp_path: Path, env: AppEnvironment) -> None:
+            components = bootstrap(env, db_path=tmp_path / f"{env.value}.sqlite")
 
             assert components.account_repo.get(self._DEV_ACCOUNT_ID) is None
