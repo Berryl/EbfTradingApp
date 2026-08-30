@@ -1,9 +1,11 @@
 import sqlite3
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 
 from ebf_data.sqlite import SQLiteAccountRepository, SQLiteTradeCampaignRepository
+from ebf_domain.money.money import Money
 from ebf_trading.application import CreateTradeCampaign
 from ebf_trading_app.bootstrap import (
     AppEnvironment,
@@ -118,3 +120,36 @@ class TestBootstrap:
 
         assert components.db_path == tmp_path / "test" / "app.sqlite"
         assert components.db_path.is_file()
+
+    class TestDefaultDevAccount:
+        _DEV_ACCOUNT_ID = UUID("6a0c5f22-5593-4b3f-8b1f-6f7f5c47e2a1")
+
+        def test_attributes_are_as_expected(self, tmp_path: Path) -> None:
+            components = bootstrap(AppEnvironment.DEV, db_path=tmp_path / "dev.sqlite")
+
+            acct = components.account_repo.get(self._DEV_ACCOUNT_ID)
+
+            assert acct is not None
+            assert acct.id == self._DEV_ACCOUNT_ID
+            assert acct.owner == "LLC"
+            assert acct.balance == Money.mint("0")
+
+        def test_provisioning_is_idempotent(self, tmp_path: Path) -> None:
+            db_path = tmp_path / "dev.sqlite"
+
+            bootstrap(AppEnvironment.DEV, db_path=db_path)
+            bootstrap(AppEnvironment.DEV, db_path=db_path)
+
+            with sqlite3.connect(db_path) as connection:
+                account_count = connection.execute(
+                    "SELECT COUNT(*) FROM accounts WHERE id = ?",
+                    (str(self._DEV_ACCOUNT_ID),),
+                ).fetchone()
+
+            assert account_count == (1,)
+
+        @pytest.mark.parametrize("env", [AppEnvironment.PROD, AppEnvironment.TEST])
+        def test_only_dev_creates_the_default_account(self, tmp_path: Path, env) -> None:
+            components = bootstrap(env, db_path=tmp_path / "prod.sqlite")
+
+            assert components.account_repo.get(self._DEV_ACCOUNT_ID) is None

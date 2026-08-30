@@ -4,13 +4,16 @@ import os
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
+from uuid import UUID
 
 from ebf_data.sqlite import (
     SQLiteAccountRepository,
     SQLiteTradeCampaignRepository,
     initialize_database,
 )
+from ebf_domain.money.money import Money
 from ebf_trading.application import CreateTradeCampaign
+from ebf_trading.domain.entities.account import Account
 
 _APP_DIR_NAME = "EbfTrading"
 _DB_FILENAME = "app.sqlite"
@@ -30,6 +33,14 @@ class AppEnvironment(StrEnum):
     PROD = "production"
     DEV = "development"
     TEST = "test"
+
+
+DEV_DEFAULT_ACCOUNT_ID = UUID("6a0c5f22-5593-4b3f-8b1f-6f7f5c47e2a1")
+DEV_DEFAULT_ACCOUNT = Account(
+    owner="LLC",
+    balance=Money.zero(),
+    id_value=DEV_DEFAULT_ACCOUNT_ID,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +115,9 @@ def bootstrap(
     initialize_database(resolved_db_path)
 
     account_repo = SQLiteAccountRepository(resolved_db_path)
+    if env is AppEnvironment.DEV:
+        account_repo.ensure_exists(DEV_DEFAULT_ACCOUNT)
+
     trade_campaign_repo = SQLiteTradeCampaignRepository(resolved_db_path)
     create_trade_campaign = CreateTradeCampaign(account_repo, trade_campaign_repo)
 
