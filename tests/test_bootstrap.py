@@ -94,11 +94,11 @@ class TestResolveDatabasePath:
 
 
 class TestBootstrap:
-    @pytest.mark.parametrize("environment", list(AppEnvironment))
-    def test_creates_database_and_constructs_components(self, environment: AppEnvironment, tmp_path: Path) -> None:
+    @pytest.mark.parametrize("env", list(AppEnvironment))
+    def test_creates_database_and_constructs_components(self, env, tmp_path: Path) -> None:
         db_path = tmp_path / "isolated" / "app.sqlite"
 
-        components = bootstrap(environment, db_path=db_path)
+        components = bootstrap(env, db_path=db_path)
 
         assert components.db_path == db_path
         assert components.db_path.parent.is_dir()

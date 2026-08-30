@@ -87,7 +87,7 @@ def resolve_database_path(env: AppEnvironment, *, app_root: Path | None = None, 
 
 
 def bootstrap(
-        env: AppEnvironment, *, app_root: Path | None = None, db_path: Path | None = None
+    env: AppEnvironment, *, app_root: Path | None = None, db_path: Path | None = None
 ) -> ApplicationComponents:
     """Initialize persistence and construct the application's use cases.
 
