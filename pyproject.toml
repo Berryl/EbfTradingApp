@@ -8,7 +8,7 @@ build-backend = "uv_build"
 name = "ebf-trading-app"
 version = "0.1.0"
 description = "Configures and launches EbfTrading"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 authors = [
     { name = "EBF" },
 ]
